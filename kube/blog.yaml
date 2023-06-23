@@ -1,0 +1,91 @@
+# hello-kubernetes.custom-message.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ghost-blog-web
+spec:
+  ports:
+    - port: 80
+      targetPort: 2368
+  selector:
+    app: ghost-blog-web
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost-blog-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghost-blog-web
+  template:
+    metadata:
+      labels:
+        app: ghost-blog-web
+    spec:
+      containers:
+        - name: ghost-blog-web
+          image: ghost:5.52
+          ports:
+            - containerPort: 2368
+          env:
+            - name: database__client
+              value: mysql
+            - name: database__connection__host
+              value: mysql
+            - name: database__connection__user
+              value: root
+            - name: database__connection__password
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: password
+            - name: database__connection__database
+              value: ghost
+            - name: url
+              value: https://k3s-tutorial.humblethoughts.net #TODO: Change this to your domain
+          volumeMounts:
+            - name: blog-storage
+              mountPath: /var/lib/ghost/content
+              subPath: ghost_data
+            - name: ghost-config
+              mountPath: /var/lib/ghost/config.production.json
+              readOnly: true
+              subPath: config.production.json
+      volumes:
+        - name: blog-storage
+          persistentVolumeClaim:
+            claimName: blog-data
+        - name: ghost-config
+          secret:
+            secretName: ghost-blog
+            items:
+              - key: config
+                path: config.production.json
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ghost-blog-web
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt"
+    nginx.ingress.kubernetes.io/proxy-body-size: 16m
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - k3s-tutorial.humblethoughts.net # TODO: Change this to your domain
+      secretName: k3s-tutorial.humblethoughts.net # TODO: Change this to your domain
+  rules:
+    - host: "k3s-tutorial.humblethoughts.net" #TODO: Change this to your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ghost-blog-web
+                port:
+                  number: 80

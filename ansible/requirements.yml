@@ -1,0 +1,6 @@
+---
+collections:
+  - name: hetzner.hcloud
+    version: "1.11.0"
+  - name: debops.debops
+    version: "3.0.3"

@@ -1,0 +1,28 @@
+- name: Common configuration
+  collections:
+    ["debops.debops", "debops.roles01", "debops.roles02", "debops.roles03"]
+  hosts: hcloud
+  strategy: free
+  roles:
+    - role: root_account
+      ignore_errors: "{{ ansible_check_mode }}"
+      tags:
+        - ssh
+
+    - role: unattended_upgrades
+      vars:
+        unattended_upgrades__auto_reboot: false
+        unattended_upgrades__remove_unused: true
+      tags:
+        - unattended_upgrades
+
+    - role: k3s
+      tags:
+        - k3s
+
+- name: Pull kubeconfig
+  hosts: localhost
+  roles:
+    - role: kubeconfig
+      tags:
+        - kubeconfig

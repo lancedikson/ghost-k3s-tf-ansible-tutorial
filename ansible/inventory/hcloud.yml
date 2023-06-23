@@ -1,0 +1,4 @@
+plugin: hcloud
+groups:
+  servers: "'true' in labels['k8s/server']"
+  agents: "'true' in labels['k8s/agent']"
